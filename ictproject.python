@@ -1,0 +1,193 @@
+#include <iostream>
+#include <windows.h>
+#include <ctime>
+#include <conio.h>
+using namespace std;
+
+int main()
+{
+	srand(time(0)); // генератор случайных чисел
+	rand();
+	system("mode con cols=51 lines=31");
+	MoveWindow(GetConsoleWindow(), 50, 50, 2000, 2000, true); // стартовая позиция окна консоли
+	const int width = 50, height = 30; // размеры поля
+	const int max_length = 50; // максимальная длина змеи
+	int array_X[max_length];
+	int array_Y[max_length];
+	int length = 1;
+	array_X[0] = width / 2; // установка стартовых координат змейки
+	array_Y[0] = height / 2;
+	int dx = 1, dy = 0;
+	int X_apple; // координаты яблока
+	int Y_apple;
+	do { // ставит координаты яблока случайным образом, но чтобы они не совпадали с координатами змейки
+		X_apple = rand() % (width - 2) + 1;
+		Y_apple = rand() % (height - 2) + 1;
+	} while (X_apple != array_X[length - 1] && Y_apple != array_Y[length - 1]);
+
+	int sleep_time = 100; // скорость игры
+	char snake = '*'; // символы для отображения
+	char apple = 'o';
+	char head = 2;
+	COORD c; // обьект для хранения координат
+	HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO cci = { sizeof(cci), false };
+	SetConsoleCursorInfo(h, &cci);
+	SetConsoleTextAttribute(h, 4); // цвет рамки поля
+	for (int y = 0; y < height; y++) { // отрисовка рамки поля
+		for (int x = 0; x < width; x++)
+		{
+			char s;
+			if (x == 0 && y == 0)
+				s = 218;
+			else if (x == 0 && y == height - 1)
+				s = 192;
+			else if (y == 0 && x == width - 1)
+				s = 191;
+			else if (y == height - 1 && x == width - 1)
+				s = 217;
+			else if (y == 0 || y == height - 1)
+				s = 196;
+			else if (x == 0 || x == width - 1)
+				s = 179;
+			else s = ' ';
+			putchar(s);
+		}
+		cout << endl;
+	}
+
+	c.X = X_apple; 	// связываем координату с позициями яблока
+	c.Y = Y_apple;
+	SetConsoleCursorPosition(h, c); //	отправка курсора на позицию яблока
+	SetConsoleTextAttribute(h, 12); // перекраска в красный увет
+	putchar(apple); // символ яблока
+	c.X = array_X[0]; // связываем координату со стартовой позицией змейки
+	c.Y = array_Y[0];
+	SetConsoleCursorPosition(h, c); // отправка курсора на позицию головы змейки
+	SetConsoleTextAttribute(h, 10); // перекраска в зеленый цвет
+	putchar(head); // отображение символа головы яблока
+	bool flag = true; // управление ходом цикла
+	do { // цикл игры
+		Sleep(sleep_time);
+		if (_kbhit()) { // проверка нажата ли клавиша
+			int k = _getch(); // считываем код клавиши из буфера
+			if (k == 0 || k == 224)
+				k = _getch();
+			switch (k) {
+			case 's': // если нажата клавиша вниз
+				dy = 1;
+				dx = 0;
+				break;
+			case 'w': // если вверх
+				dy = -1;
+				dx = 0;
+				break;
+			case 'a': // если влево
+				dy = 0;
+				dx = -1;
+				break;
+			case 'd': // если вправо
+				dy = 0;
+				dx = 1;
+				break;
+			case 80: // если вниз (стрелочка)
+				dy = 1;
+				dx = 0;
+				break;
+			case 72: // если вверх (стрелочка)
+				dy = -1;
+				dx = 0;
+				break;
+			case 75: // если влево (стрелочка)
+				dy = 0;
+				dx = -1;
+				break;
+			case 77: // если вправо (стрелочка)
+				dy = 0;
+				dx = 1;
+				break;
+			case 27: // если нажата клавиша "ESC"
+				flag = false; // завершается игра
+				break;
+			}
+		}
+
+		int X = array_X[length - 1] + dx; // определение значения абсциссы головы змейки после смещения
+		int Y = array_Y[length - 1] + dy; // определние значение ординаты
+		if (X == 0 || X == width - 1 || Y == 0 || Y == height - 1) { // достижение границы поля
+			flag = false; // завершение игры
+		}
+		else if (X == X_apple && Y == Y_apple) { // проверка на достижение яблока
+			c.X = array_X[length - 1]; // установка координат змейки
+			c.Y = array_Y[length - 1];
+			SetConsoleCursorPosition(h, c);
+			putchar(snake); // отображение символа тела змейки
+			length++; // увеличение длины змейки
+			c.X = array_X[length - 1] = X; // установка новых координат змейки
+			c.Y = array_Y[length - 1] = Y;
+			SetConsoleCursorPosition(h, c);
+			putchar(head); // отображение символа головы змейки
+			if (length == max_length) { // если достигнута максимальная длина - завершение игры
+				break;
+			}
+
+			int i; // переменная для подсчета количества звеньев змейки, не совпадающих с позицией яблока
+			do
+			{
+				X_apple = rand() % (width - 2) + 1; // установка новых координат яблока
+				Y_apple = rand() % (height - 2) + 1;
+				i = 0; // обнуление числа несовпадающих координат
+				for (; i < length; i++) // цикл на сверку совпадений
+					if (X_apple == array_X[i] && Y_apple == array_Y[i]) // если совпадение найдено - прерываем цикл
+						break;
+			} while (i < length);// поиск новых координат продолжается, пока число несовпадающих координат меньше длины змейки
+
+			c.X = X_apple; // установка корректных координат яблока
+			c.Y = Y_apple;
+			SetConsoleCursorPosition(h, c); // отправка курсора
+			SetConsoleTextAttribute(h, 12); // красный цвет
+			putchar(apple); // символ яблока
+			SetConsoleTextAttribute(h, 10); // установка цвета в зеленый, чтобы змейка была зеленой
+		}
+		else // голова змейки на новой пустой позиции
+		{
+			int i = 1; // кол-во звеньев, не совпадающих с новой позицией кроме хвоста змеи
+			for (; i < length; i++)
+				if (X == array_X[i] && Y == array_Y[i]) // если найдено совпадение - прерывание
+					break;
+			if (i < length) // если число несовподающих звеньев меньше длины змеи - прерывание цикла игры
+			{
+				break;
+			}
+			else // иначе запускаем обработку сдвига змейки
+			{
+				c.X = array_X[0]; // устанавливаем в объект координат позицию хвоста змейки
+				c.Y = array_Y[0];
+				SetConsoleCursorPosition(h, c); // установка туда курсора
+				putchar(' '); // отображение пробела
+
+				if (length > 1) // если длина змеи больше
+				{
+					c.X = array_X[length - 1]; // установка в обьект предыдущей координаты головы змеи
+					c.Y = array_Y[length - 1];
+					SetConsoleCursorPosition(h, c); // установка туда курсора
+					putchar(snake); // вывод символ тела змеи
+				}
+
+				for (int i = 0; i < length - 1; i++) // цикл сдвига координатов змеи
+				{
+					array_X[i] = array_X[i + 1]; // обработка всех звеньев
+					array_Y[i] = array_Y[i + 1];
+				}
+
+				c.X = array_X[length - 1] = X; // установка новой позиции головы
+				c.Y = array_Y[length - 1] = Y;
+				SetConsoleCursorPosition(h, c); // установка туда курсора
+				putchar(head); // отображение символа головы змеи
+			}
+		}
+	} while (flag); // выход из цикла, если сброшена управляющая переменная
+	system("cls"); // очистка экрана
+	cout << "GAME OVER\n"; // вывод надписи о конце игры
+	system("pause");
+}
